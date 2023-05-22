@@ -16,61 +16,97 @@ from transformers import pipeline
 
 # ------------------------------------------------------------------------------------------
 
+print('-------------------------------------- %s --------------------------------------' % 'sentiment-analysis')
 classifier = pipeline("sentiment-analysis")
-classifier(["I've been waiting for a HuggingFace course my whole life.",
-            "I hate this so much!"])
+result = classifier(["I've been waiting for a HuggingFace course my whole life.",
+                     "I hate this so much!"])
+print(result)
+# [{'label': 'POSITIVE', 'score': 0.9598049521446228}, {'label': 'NEGATIVE', 'score': 0.9994558691978455}]
+
+print()
 
 
 # ------------------------------------------------------------------------------------------
 
+print('-------------------------------------- %s --------------------------------------' % 'zero-shot-classification')
 classifier = pipeline("zero-shot-classification")
-classifier(
+result = classifier(
     "This is a course about the Transformers library",
     candidate_labels=["education", "politics", "business"]
 )
+print(result)
+# {'sequence': 'This is a course about the Transformers library', 'labels': ['education', 'business', 'politics'], 'scores': [0.8445988297462463, 0.11197440326213837, 0.04342682659626007]}
+
+print()
 
 
 # ------------------------------------------------------------------------------------------
 
+print('-------------------------------------- %s --------------------------------------' % 'text-generation')
 generator = pipeline("text-generation")
-generator("In this course, we will teach you how to")
+result = generator("In this course, we will teach you how to")
+print(result)
+# [{'generated_text': "In this course, we will teach you how to work with your brain to create new problems, and how to take them to the next level and live it out for years and decades longer.\n\nDo you have a problem you know that can't"}]
+
+print()
 
 
 # ------------------------------------------------------------------------------------------
 
+print('-------------------------------------- %s --------------------------------------' % 'text-generation distilgpt2')
 generator = pipeline("text-generation", model="distilgpt2")
-generator(
+result = generator(
     "In this course, we will teach you how to",
     max_length=30,
     num_return_sequences=2,
 )
+print(result)
+# [{'generated_text': 'In this course, we will teach you how to code the new programming language, learn how to code it, and learn how to use it to make'}, {'generated_text': 'In this course, we will teach you how to use the builtins to do things for yourself from the comfort of your PC, tablet and computer.'}]
+
+print()
 
 
 # ------------------------------------------------------------------------------------------
 
+print('-------------------------------------- %s --------------------------------------' % 'fill-mask')
 unmasker = pipeline("fill-mask")
-unmasker("This course will teach you all about <mask> models.", top_k=2)
+result = unmasker("This course will teach you all about <mask> models.", top_k=2)
+print(result)
+# [{'score': 0.19619810581207275, 'token': 30412, 'token_str': ' mathematical', 'sequence': 'This course will teach you all about mathematical models.'}, {'score': 0.04052736610174179, 'token': 38163, 'token_str': ' computational', 'sequence': 'This course will teach you all about computational models.'}]
+
+print()
 
 
 # ------------------------------------------------------------------------------------------
 
+print('-------------------------------------- %s --------------------------------------' % 'ner')
 ner = pipeline("ner", grouped_entities=True)
-ner("My name is Sylvain and I work at Hugging Face in Brooklyn.")
+result = ner("My name is Sylvain and I work at Hugging Face in Brooklyn.")
+print(result)
+# [{'entity_group': 'PER', 'score': 0.9981694, 'word': 'Sylvain', 'start': 11, 'end': 18}, {'entity_group': 'ORG', 'score': 0.9796019, 'word': 'Hugging Face', 'start': 33, 'end': 45}, {'entity_group': 'LOC', 'score': 0.9932106, 'word': 'Brooklyn', 'start': 49, 'end': 57}]
+
+print()
 
 
 # ------------------------------------------------------------------------------------------
 
+print('-------------------------------------- %s --------------------------------------' % 'question-answering')
 question_answerer = pipeline("question-answering")
-question_answerer(
+result = question_answerer(
     question="Where do I work?",
     context="My name is Sylvain and I work at Hugging Face in Brooklyn"
 )
+print(result)
+# {'score': 0.6949766278266907, 'start': 33, 'end': 45, 'answer': 'Hugging Face'}
+
+print()
 
 
 # ------------------------------------------------------------------------------------------
 
+print('-------------------------------------- %s --------------------------------------' % 'summarization')
 summarizer = pipeline("summarization")
-summarizer(
+result = summarizer(
     """
     America has changed dramatically during recent years. Not only has the number of 
     graduates in traditional engineering disciplines such as mechanical, civil, 
@@ -92,11 +128,20 @@ summarizer(
     and a lack of well-educated engineers.
 """
 )
+print(result)
+# [{'summary_text': ' America has changed dramatically during recent years . The number of engineering graduates in the U.S. has declined in traditional engineering disciplines such as mechanical, civil,    electrical, chemical, and aeronautical engineering . Rapidly developing economies such as China and India continue to encourage and advance the teaching of engineering .'}]
+
+print()
 
 
 # ------------------------------------------------------------------------------------------
 
+print('-------------------------------------- %s --------------------------------------' % 'Helsinki-NLP/opus-mt-fr-en')
 translator = pipeline("translation", model="Helsinki-NLP/opus-mt-fr-en")
-translator("Ce cours est produit par Hugging Face.")
+result = translator("Ce cours est produit par Hugging Face.")
+print(result)
+# [{'translation_text': 'This course is produced by Hugging Face.'}]
+
+print()
 
 
