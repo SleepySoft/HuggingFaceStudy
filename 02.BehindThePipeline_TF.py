@@ -10,8 +10,8 @@
 # )
 
 
-import torch
-from transformers import AutoTokenizer, AutoModel, AutoModelForSequenceClassification
+import tensorflow as tf
+from transformers import AutoTokenizer, TFAutoModel, TFAutoModelForSequenceClassification
 
 
 checkpoint = "distilbert-base-uncased-finetuned-sst-2-english"
@@ -21,7 +21,7 @@ raw_inputs = [
     "I've been waiting for a HuggingFace course my whole life.",
     "I hate this so much!",
 ]
-inputs = tokenizer(raw_inputs, padding=True, truncation=True, return_tensors="pt")
+inputs = tokenizer(raw_inputs, padding=True, truncation=True, return_tensors="tf")
 print('-------------------------------------- %s --------------------------------------' % 'inputs as tokenizer output')
 print(inputs)
 print()
@@ -29,8 +29,8 @@ print()
 
 # ------------------------------------------------------------------------------------------------
 
-model = AutoModel.from_pretrained(checkpoint)
-outputs = model(**inputs)
+model = TFAutoModel.from_pretrained(checkpoint)
+outputs = model(inputs)
 
 print('-------------------------------------- %s --------------------------------------' %
       'AutoModel outputs.last_hidden_state.shape')
@@ -61,8 +61,8 @@ print()
 # and others 🤗
 #
 
-model = AutoModelForSequenceClassification.from_pretrained(checkpoint)
-outputs = model(**inputs)
+model = TFAutoModelForSequenceClassification.from_pretrained(checkpoint)
+outputs = model(inputs)
 
 print('-------------------------------------- %s --------------------------------------' %
       'AutoModelForSequenceClassification outputs.logits.shape')
@@ -81,7 +81,7 @@ print()
 
 # ------------------------------------------------------------------------------------------------
 
-predictions = torch.nn.functional.softmax(outputs.logits, dim=-1)
+predictions = tf.math.softmax(outputs.logits, axis=-1)
 print('-------------------------------------- %s --------------------------------------' % 'predictions')
 print(predictions)
 print()
