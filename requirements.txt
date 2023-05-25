@@ -1,0 +1,5 @@
+torch
+tensorflow
+datasets
+evaluate
+transformers[sentencepiece]
