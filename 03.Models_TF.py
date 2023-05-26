@@ -1,11 +1,11 @@
-import torch
-from transformers import BertConfig, BertModel
+import tensorflow as tf
+from transformers import BertConfig, TFBertModel
 
 # Building the config
 config = BertConfig()
 
 # Building the model from the config
-model = BertModel(config)
+model = TFBertModel(config)
 
 print(config)
 
@@ -17,6 +17,8 @@ encoded_sequences = [
     [101, 3835, 999, 102],
 ]
 
-model_inputs = torch.tensor(encoded_sequences)
+model_inputs = tf.constant(encoded_sequences)
 
 output = model(model_inputs)
+
+print(output)

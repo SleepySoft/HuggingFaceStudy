@@ -20,3 +20,5 @@ encoded_sequences = [
 model_inputs = torch.tensor(encoded_sequences)
 
 output = model(model_inputs)
+
+print(output)
