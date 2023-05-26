@@ -1,3 +1,4 @@
 torch
 tensorflow
+datasets[vision]
 transformers[sentencepiece]
