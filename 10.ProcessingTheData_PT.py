@@ -1,6 +1,7 @@
 import torch
 from transformers import AdamW, AutoTokenizer, AutoModelForSequenceClassification
 
+
 # Same as before
 checkpoint = "bert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(checkpoint)
@@ -81,4 +82,3 @@ samples = {k: v for k, v in samples.items() if k not in ["idx", "sentence1", "se
 
 batch = data_collator(samples)
 print({k: v.shape for k, v in batch.items()})
-
