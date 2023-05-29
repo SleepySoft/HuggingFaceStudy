@@ -1,4 +1,5 @@
 torch
 tensorflow
+evaluate
 datasets[vision]
 transformers[sentencepiece]
