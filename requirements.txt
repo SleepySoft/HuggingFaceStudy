@@ -3,3 +3,4 @@ tensorflow
 evaluate
 datasets[vision]
 transformers[sentencepiece]
+tqdm
