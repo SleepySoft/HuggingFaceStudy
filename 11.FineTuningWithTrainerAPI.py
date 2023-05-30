@@ -62,6 +62,10 @@ trainer.train()
 
 # ----------------------------------------------------------------------------------------------------------------------
 
+# trainer.predict(tokenized_datasets["validation"]) 和直接调用模型会得到相同的预测结果，但是 trainer.predict 方法会执行一些额外的操作。
+# 当您使用 trainer.predict 方法时，它会自动处理数据批次，并在每个批次上调用模型进行预测。此外，它还会自动将数据移动到正确的设备（例如 GPU）上，
+# 并在预测完成后将结果移回 CPU。最后，它还会计算一些额外的信息，例如预测的损失值。因此，使用 trainer.predict 方法可以让您更方便地对数据集进行预测，并获取一些额外的信息。
+
 predictions = trainer.predict(tokenized_datasets["validation"])
 print(predictions.predictions.shape, predictions.label_ids.shape)
 
@@ -71,7 +75,13 @@ print(predictions.predictions.shape, predictions.label_ids.shape)
 
 preds = np.argmax(predictions.predictions, axis=-1)
 
+# 加载 GLUE 数据集中 MRPC 任务的评估指标。对于 MRPC 任务，评估指标是 F1 分数和准确率。
+#   F1 分数是一种用于衡量分类模型性能的指标，它是精确率和召回率的调和平均值。精确率表示在所有被模型预测为正类的样本中，真实为正类的比例；召回率表示在所有真实为正类的样本中，被模型预测为正类的比例。
+#   F1 分数的计算公式为：F1 = 2 * 精确率 * 召回率 / (精确率 + 召回率)
+#   F1 分数的取值范围为 0 到 1，值越大表示模型性能越好。当精确率和召回率都很高时，F1 分数也会很高。因此，F1 分数可以用来衡量模型在同时保证精确率和召回率方面的能力。
 metric = evaluate.load("glue", "mrpc")
+
+# 使用 compute 方法来计算模型在验证集上的 F1 分数和准确率。它接受两个参数：predictions 是模型的预测结果，references 是验证集的真实标签。
 metric.compute(predictions=preds, references=predictions.label_ids)
 
 
