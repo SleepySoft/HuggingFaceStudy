@@ -1,5 +1,10 @@
+import torch
+import evaluate
+from tqdm.auto import tqdm
 from datasets import load_dataset
-from transformers import AutoTokenizer, DataCollatorWithPadding
+from torch.utils.data import DataLoader
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, \
+    DataCollatorWithPadding, AdamW, get_scheduler
 
 
 raw_datasets = load_dataset("glue", "mrpc")
@@ -25,8 +30,6 @@ tokenized_datasets.set_format("torch")
 print(tokenized_datasets["train"].column_names)
 
 
-from torch.utils.data import DataLoader
-
 train_dataloader = DataLoader(
     tokenized_datasets["train"], shuffle=True, batch_size=8, collate_fn=data_collator
 )
@@ -42,21 +45,23 @@ for batch in train_dataloader:
 print({k: v.shape for k, v in batch.items()})
 
 
-from transformers import AutoModelForSequenceClassification
-
 model = AutoModelForSequenceClassification.from_pretrained(checkpoint, num_labels=2)
 
 outputs = model(**batch)
 print(outputs.loss, outputs.logits.shape)
 
-from transformers import AdamW
 
 optimizer = AdamW(model.parameters(), lr=5e-5)
 
-from transformers import get_scheduler
 
 num_epochs = 3
 num_training_steps = num_epochs * len(train_dataloader)
+
+# scheduler 是学习率调度器的一个实例。学习率调度器用于在训练过程中动态调整优化器的学习率。
+#       不同的学习率调度器使用不同的策略来调整学习率，例如线性衰减、余弦衰减、分段常数等。
+# 在这段代码中，我们使用 get_scheduler 函数创建了一个线性学习率调度器。这个调度器会在训练过程中将学习率从初始值线性衰减到 0。
+# lr_scheduler.step() 函数用于更新学习率。在每次更新模型参数后，我们都需要调用这个函数来更新优化器的学习率。这样，优化器在下一次更新模型参数时就会使用新的学习率。
+
 lr_scheduler = get_scheduler(
     "linear",
     optimizer=optimizer,
@@ -65,17 +70,35 @@ lr_scheduler = get_scheduler(
 )
 print(num_training_steps)
 
+# Q: Adam不是会自动调整梯度下降的幅度吗？为什么我们还需要学习率调度器？
+# A: 是的，Adam 优化器会根据梯度的一阶矩和二阶矩动态调整每个参数的学习率。这种自适应学习率调整方法可以加速模型的收敛，并且能够适应不同的数据分布和模型结构。
+#    然而，尽管 Adam 优化器能够自适应地调整每个参数的学习率，但它仍然需要一个全局学习率作为基准。
+#    全局学习率决定了 Adam 优化器更新每个参数时学习率的上限。因此，我们仍然需要使用学习率调度器来动态调整全局学习率。
+#    在实践中，我们通常会在训练过程中逐渐降低全局学习率，以便在模型接近最优解时能够更精细地调整模型参数。这就是为什么我们需要使用学习率调度器的原因。
+
 
 # ---------------------------------- The training loop ----------------------------------
 
-import torch
+# 这段代码中的训练方法与前面提到的 Trainer 类的训练方法不同。这段代码中，我们手动定义了一个训练循环，用于在指定的 epoch 数内对模型进行训练。
+# 在每个 epoch 中，我们遍历训练数据集中的每个批次，并使用模型计算损失。然后，我们使用反向传播算法计算梯度，并使用优化器更新模型参数。
+#
+# 而在前面提到的 Trainer 类中，训练过程是自动进行的。我们只需要创建一个 Trainer 对象，并指定训练数据集、验证数据集、数据整理器、分词器和评估函数等参数。
+# 然后，我们可以使用 trainer.train() 函数开始训练模型。Trainer 类会自动执行训练循环，并在每个 epoch 结束时根据指定的评估策略对模型进行评估。
+#
+# 使用 Trainer 类和手动定义训练循环这两种方法在效率上没有太大差别。它们的主要区别在于易用性和灵活性。
+# 使用 Trainer 类的优点是它非常易用。我们只需要创建一个 Trainer 对象，并指定训练数据集、验证数据集、数据整理器、分词器和评估函数等参数。
+# 然后，我们可以使用 trainer.train() 函数开始训练模型。Trainer 类会自动执行训练循环，并在每个 epoch 结束时根据指定的评估策略对模型进行评估。
+#
+# 手动定义训练循环的优点是它非常灵活。我们可以根据需要自定义训练循环中的每一个步骤，例如计算损失、更新模型参数、调整学习率等。
+# 这样，我们就可以实现一些特殊的训练策略，或者在训练过程中添加一些自定义的操作。
+#
+# 总之，如果你想快速实现一个简单的训练过程，那么使用 Trainer 类可能是一个更好的选择。如果你需要实现一些特殊的训练策略，或者想要对训练过程进行更多的控制，那么手动定义训练循环可能更合适。
+
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 model.to(device)
 print(device)
 
-
-from tqdm.auto import tqdm
 
 progress_bar = tqdm(range(num_training_steps))
 
@@ -89,13 +112,16 @@ for epoch in range(num_epochs):
 
         optimizer.step()
         lr_scheduler.step()
+
+        # optimizer.zero_grad() 函数用于清除优化器中累积的梯度。在每次更新模型参数之前，我们都需要调用这个函数来清除上一次迭代中计算的梯度。
+        # 在 PyTorch 中，梯度是累积的，也就是说每次调用 loss.backward() 函数时，计算出的梯度都会累加到模型参数的 grad 属性中。
+        # 因此，如果我们不清除梯度，那么下一次迭代时计算出的梯度就会叠加在上一次迭代的梯度之上，导致模型无法正确地更新。
         optimizer.zero_grad()
+
         progress_bar.update(1)
 
 
 # --------------------------------- The evaluation loop ---------------------------------
-
-import evaluate
 
 metric = evaluate.load("glue", "mrpc")
 model.eval()
@@ -109,21 +135,3 @@ for batch in eval_dataloader:
     metric.add_batch(predictions=predictions, references=batch["labels"])
 
 metric.compute()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -66,14 +66,29 @@ trainer.train()
 # 当您使用 trainer.predict 方法时，它会自动处理数据批次，并在每个批次上调用模型进行预测。此外，它还会自动将数据移动到正确的设备（例如 GPU）上，
 # 并在预测完成后将结果移回 CPU。最后，它还会计算一些额外的信息，例如预测的损失值。因此，使用 trainer.predict 方法可以让您更方便地对数据集进行预测，并获取一些额外的信息。
 
+# predictions 包含两个属性：predictions.predictions 和 predictions.label_ids。
+# predictions.predictions 是一个形状为 (num_examples, num_labels) 的数组，其中 num_examples
+#   是验证集中样本的数量，um_labels 是类别的数量。每一行为一个样本在各个标签上的预测概率：
+#       [[-3.4582543 ,  3.8360713 ],
+#        [ 2.2839937 , -2.8021407 ],
+#        [ 1.9941015 , -2.269071  ],
+#        [-3.4411662 ,  3.61056   ],
+#        [ 2.3833728 , -2.8724198 ]]
+# predictions.label_ids 是一个形状为 (num_examples,) 的数组，表示验证集中每个样本的真实标签。
+
+# predictions.predictions 是模型输出的 logits。logits 是模型在最后一层的输出，它表示模型对每个类别的预测得分。
+# 在这个例子中，由于是二分类问题，所以 predictions.predictions 的每一行都包含两个值，分别表示模型对两个类别的预测得分。
+# 通常情况下，我们会使用 softmax 函数将 logits 转换为概率分布。
+
 predictions = trainer.predict(tokenized_datasets["validation"])
 print(predictions.predictions.shape, predictions.label_ids.shape)
 
-# predictions.predictions 是一个二维数组，其中每一行表示一个样本，每一列表示一个类别。数组中的值表示模型对每个样本属于每个类别的概率。
-# np.argmax(predictions.predictions, axis=-1) 会沿着最后一个轴（即每一行）计算最大值的索引，也就是模型认为每个样本最有可能属于哪个类别。
+# argmax 是一个函数，它返回输入数组中最大值的索引。
+# np.argmax(predictions.predictions, axis=-1) 会沿着最后一个轴（即每一行）计算最大值的索引。即概率最高的那个分类。
 # 因此，preds 是一个一维数组，其中每个元素表示一个样本的预测类别。
 
 preds = np.argmax(predictions.predictions, axis=-1)
+print(preds)
 
 # 加载 GLUE 数据集中 MRPC 任务的评估指标。对于 MRPC 任务，评估指标是 F1 分数和准确率。
 #   F1 分数是一种用于衡量分类模型性能的指标，它是精确率和召回率的调和平均值。精确率表示在所有被模型预测为正类的样本中，真实为正类的比例；召回率表示在所有真实为正类的样本中，被模型预测为正类的比例。
@@ -82,11 +97,16 @@ preds = np.argmax(predictions.predictions, axis=-1)
 metric = evaluate.load("glue", "mrpc")
 
 # 使用 compute 方法来计算模型在验证集上的 F1 分数和准确率。它接受两个参数：predictions 是模型的预测结果，references 是验证集的真实标签。
-metric.compute(predictions=preds, references=predictions.label_ids)
+result = metric.compute(predictions=preds, references=predictions.label_ids)
+print(result)
+
+
+# -------------------------------------------- Evaluate metric in training ---------------------------------------------
+
+metric = evaluate.load("glue", "mrpc")
 
 
 def compute_metrics(eval_preds):
-    metric = evaluate.load("glue", "mrpc")
     logits, labels = eval_preds
     predictions = np.argmax(logits, axis=-1)
     return metric.compute(predictions=predictions, references=labels)
