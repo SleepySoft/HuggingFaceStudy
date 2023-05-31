@@ -102,7 +102,10 @@ print(device)
 
 progress_bar = tqdm(range(num_training_steps))
 
+# 将 PyTorch 模型设置为训练模式。在训练模式下，模型的行为可能会与评估模式不同。
+# 例如，某些层（如批量归一化层和丢弃层）在训练和评估模式下的行为不同。因此，在训练模型之前，我们需要调用 model.train() 来确保模型处于正确的状态。
 model.train()
+
 for epoch in range(num_epochs):
     for batch in train_dataloader:
         batch = {k: v.to(device) for k, v in batch.items()}
@@ -124,9 +127,24 @@ for epoch in range(num_epochs):
 # --------------------------------- The evaluation loop ---------------------------------
 
 metric = evaluate.load("glue", "mrpc")
+
+# 将 PyTorch 模型设置为评估模式。
 model.eval()
+
 for batch in eval_dataloader:
     batch = {k: v.to(device) for k, v in batch.items()}
+
+    #
+    # with torch.no_grad() 是一个上下文管理器，它用于在 PyTorch 中临时禁用自动梯度计算。
+    #       这在评估模型时非常有用，因为我们不需要计算梯度，这样可以节省内存并加快计算速度。
+    #
+    # 的确，在 PyTorch 中，只有在调用 backward() 函数时才会计算梯度。
+    #       但是，在计算梯度之前，PyTorch 会在前向传播过程中跟踪计算图并存储中间结果，以便在反向传播时使用。
+    #       当我们使用 with torch.no_grad() 时，PyTorch 不会跟踪计算图并存储中间结果，从而节省内存并加快计算速度。
+    #
+    # 当我们使用模型进行推理（即预测）时，我们通常也会使用 with torch.no_grad() 来禁用自动梯度计算。
+    # 这样可以节省内存并加快计算速度，因为在推理过程中我们不需要计算梯度。
+    #
     with torch.no_grad():
         outputs = model(**batch)
 
@@ -134,4 +152,5 @@ for batch in eval_dataloader:
     predictions = torch.argmax(logits, dim=-1)
     metric.add_batch(predictions=predictions, references=batch["labels"])
 
-metric.compute()
+result = metric.compute()
+print(result)
