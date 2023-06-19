@@ -1,6 +1,7 @@
 torch
 tensorflow
 evaluate
+accelerate
 datasets[vision]
 transformers[sentencepiece]
 tqdm
